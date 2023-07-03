@@ -1,0 +1,117 @@
+version: "3"
+
+services:    
+  db:
+    container_name: mongodb
+    image: mongo@sha256:9ae745b709512a09a8c105959f75bde3d8a25c3215842a8251c073e14cd2a04d # mongo:5.0.6
+    restart: always
+    expose:
+      - "27017"
+    env_file:
+      - .db.env
+    networks:
+      - data_impact_backend_network
+    volumes:
+      - mongo_shared:/var/lib/mongo/data
+  
+  seed:
+    container_name: mongodb-seed
+    image: mongodb-seed
+    build:
+      context: ../data/db/mongo/seed
+      dockerfile: Dockerfile
+    env_file:
+      - .db.env
+    networks:
+      - data_impact_backend_network
+    depends_on:
+      - db
+
+  mongo-express:
+    image: mongo-express
+    restart: always
+    expose: 
+      - "8081"
+    env_file:
+      - .db.env
+    networks:
+      - data_impact_backend_network
+    depends_on:
+      - db
+      - seed
+    # TRAEFIK REDIRECTION
+    labels:
+      - "traefik.http.routers.app1.rule=Host(`app1.traefik.me`)"
+      - "traefik.http.routers.app1-tls.tls.domains[0].main=app1.traefik.me"
+      - "traefik.http.routers.app1-tls.tls.domains[0].sans=app1-*.traefik.me"
+      - "traefik.http.routers.app1-tls=true"
+
+  server:
+    container_name: server
+    image: server
+    env_file:
+      - .db.env
+    build:
+      context: ./requirements/server
+      dockerfile: Dockerfile
+    expose:
+      - "9000"
+    networks:
+      - data_impact_backend_network
+    depends_on:
+      - db
+    restart: always
+    volumes:
+      - mongo_shared:/go/bin/files
+    # TRAEFIK REDIRECTION
+    labels:
+      - "traefik.http.routers.app2.rule=Host(`app2.traefik.me`)"
+      - "traefik.http.routers.app2-tls.tls.domains[0].main=app2.traefik.me"
+      - "traefik.http.routers.app2-tls.tls.domains[0].sans=app2-*.traefik.me"
+      - "traefik.http.routers.app2-tls=true"
+  
+  traefik:
+    container_name: traefik
+    image: traefik@sha256:44cbafeaa8d0387751ccb557a7738bb1d2a908cdd358e8acefcfcb8e8b9faf8f # traefik:v2.6
+    ports:
+      - "80:80"
+      - "443:443"
+      # - "8080:8080" # Expose dashboard /!\ Don't do this in production /!\
+    labels:
+      - "traefik.http.services.traefik.loadbalancer.server.port=8080"
+    volumes:
+      - ./requirements/traefik/traefik.yml:/etc/traefik/traefik.yml
+      - ./requirements/traefik/tls.yml:/etc/traefik/tls.yml
+      - /var/run/docker.sock:/var/run/docker.sock
+      - certs:/etc/ssl/traefik
+    networks:
+      - data_impact_backend_network
+    depends_on:
+      - db
+      - seed
+      - mongo-express
+      - server
+    restart: always
+  
+  reverse-proxy-https-helper:
+    image: alpine@sha256:21a3deaa0d32a8057914f36584b5288d2e5ecc984380bc0118285c70fa8c9300 # alpine:3.15
+    command: sh -c "cd /etc/ssl/traefik
+      && wget traefik.me/cert.pem -O cert.pem
+      && wget traefik.me/privkey.pem -O privkey.pem"
+    volumes:
+      - certs:/etc/ssl/traefik
+    networks:
+      - data_impact_backend_network
+
+volumes:
+  certs:
+    driver: local
+  mongo_shared:
+    driver: local
+    driver_opts:
+      o: "bind"
+      type: "volume"
+      device: "./data/db/mongo/shared"
+networks:
+  data_impact_backend_network:
+    driver: bridge

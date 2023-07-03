@@ -1,0 +1,43 @@
+[
+  {
+    "id": "seed",
+    "password": "MySeedPasswordSecret!",
+    "isActive": false,
+    "balance": "$0,000.00",
+    "age": 64,
+    "name": "Mister Seed",
+    "gender": "male",
+    "company": "SEED",
+    "email": "seed@seed.com",
+    "phone": "+1 (868) 439-2675",
+    "address": "588 Schaefer Street, Falconaire, Missouri, 9457",
+    "about": "seeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeed.\r\n",
+    "registered": "2014-10-12T04:14:20 -02:00",
+    "latitude": -10.647121,
+    "longitude": 126.04006,
+    "tags": [
+      "seed",
+      "seed",
+      "seed",
+      "seed",
+      "seed",
+      "seed",
+      "seed"
+    ],
+    "friends": [
+      {
+        "id": 0,
+        "name": "Seed Warren"
+      },
+      {
+        "id": 1,
+        "name": "Seed Schneider"
+      },
+      {
+        "id": 2,
+        "name": "Seed Mcbride"
+      }
+    ],
+    "data":"data seed"
+  }
+]
